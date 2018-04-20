@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from pykafka import KafkaClient
-from split_file_by_time import output
+from split_file_by_time import time_continuous_output
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,7 +22,7 @@ def send_records(topic_name, filename):
     count = 0
     all_count = 0
     with topic.get_sync_producer() as producer:
-        for record in output(filename, 'second'):
+        for record in time_continuous_output(filename, 'hour', '2015-01-01 00:00:00'):
             for t in record.strip().split('\n'):
                 producer.produce(t.encode('utf-8'))
                 logger.info("send message:%s"%(t))

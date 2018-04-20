@@ -74,20 +74,24 @@ def insert_record(balanced_consumer, conn, cur):
         if mes is not None:
             record = mes.value.decode('utf-8').split('\t')
             if len(record) != 4:
-                logger.error('%s does not have enough elements!'%(record))
+                logger.warning('%s does not have enough elements!'%(record))
+                logger.debug(str(record))
                 continue
             try:
                 cur.execute('insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
                 conn.commit()
                 balanced_consumer.commit_offsets()
                 logger.info('insert record successful! %s'%(record))
-            except:
-                logger.error('insert failed! insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
+            except Exception as e:
+                logger.error(e)
+                logger.error('failed! insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
                 continue
 
 def parse_topic(topic_name, num_consumer = 1):
     '''
-    build connections to the kafka cluster and create multi consumers to consume date from the specific topic
+    build connections to the kafka cluster and create multiple consumers
+    to consume date from the specific topic
+
     Parameters
     ----------
     topic_name: str

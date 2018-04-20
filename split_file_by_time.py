@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 import os
 from datetime import datetime
+from datetime import timedelta
+import time
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -61,13 +63,20 @@ def generate_text(results):
         i[-1] = datetime.strftime(i[-1], '%Y-%m-%d %H:%M:%S')
     return '\n'.join('\t'.join(i) for i in results)
 
-def output(filename, freq, continuous = False):
-    '''
+def output(filename, freq):
+    '''split file into multiple chunks and return a generator
+
     Parameters
     ----------
     filename: str
+
     freq: str
         'second' means second, 'hour' means hour
+
+    Returns
+    ----------
+    variable: generator(str)
+        each element is a chunk of records which have same timestamps depends on "freq"
     '''
     freq_strformat = {'second': '%Y-%m-%d %H:%M:%S',
                       'hour': '%Y-%m-%d %H'}
@@ -90,6 +99,49 @@ def output(filename, freq, continuous = False):
                 logger.info('capture data in %s'%(last_time))
                 results.append(data)
 
+def time_continuous_output(filename, freq, start_time):
+    '''output records by the second or by the hour
+
+    Parameters
+    ----------
+    filename: str
+
+    freq: str
+        'second' means second, 'hour' means hour
+
+    start_time: str
+        %Y-%m-%d %H:%M:%S
+
+    Returns
+    ----------
+    variable: generator(str)
+        each element is a chunk of records which have same timestamps depends on "freq",
+        but the output chunks' timestamps are continuous
+    '''
+    freq_strformat = {'second': '%Y-%m-%d %H:%M:%S',
+                      'hour': '%Y-%m-%d %H'}
+    if freq == 'second':
+        delta, sleep_time = timedelta(seconds = 1), 1
+    elif freq == 'hour':
+        delta, sleep_time = timedelta(hours = 1), 3
+    else:
+        logger.error('freq is neither second nor hour, freq is %s'%(freq))
+        return 
+
+    last_time = datetime.strptime(start_time, freq_strformat['second']).strftime(freq_strformat[freq])
+    for data in output(filename, freq):
+        current_time = datetime.strptime(data[data.rfind('\t')+1:], freq_strformat['second'])\
+                        .strftime(freq_strformat[freq])
+        while current_time != last_time:
+            yield ''
+            time.sleep(sleep_time)
+            last_time = (datetime.strptime(last_time, freq_strformat[freq]) + delta)\
+                        .strftime(freq_strformat[freq])
+        yield data
+        time.sleep(sleep_time)
+        last_time = (datetime.strptime(last_time, freq_strformat[freq]) + delta)\
+                        .strftime(freq_strformat[freq])
+
 if __name__ == '__main__':
-    for i in output('smallUserBehaviorSortedByTime_part1.txt', 'hour'):
+    for i in time_continuous_output('smallUserBehaviorSortedByTime_part1.txt', 'hour', '2015-01-01 00:00:00'):
         print(i)

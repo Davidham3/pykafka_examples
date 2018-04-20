@@ -4,7 +4,7 @@ from split_file_by_time import output
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('producer')
 
 def send_records(topic_name, filename):
     '''send the records of the file to the specific topic

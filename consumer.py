@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('consumer')
 
 MYSQL_CONFIGURATION = {
     'host': '192.168.56.121',
@@ -110,4 +110,4 @@ def parse_topic(topic_name, num_consumer = 1):
             executor.submit(insert_record, balanced_consumer, conn, cur)
 
 if __name__ == '__main__':
-    parse_topic('userbehavior10', 1)
+    parse_topic('userbehavior10', 5)

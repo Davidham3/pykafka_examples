@@ -2,6 +2,10 @@
 from pykafka import KafkaClient
 import pymysql
 from concurrent.futures import ThreadPoolExecutor
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 MYSQL_CONFIGURATION = {
     'host': '192.168.56.121',
@@ -31,11 +35,11 @@ def create_table():
         conn.commit()
     cur.execute('show databases;')
     if 'experiment2' not in (i[0] for i in cur._rows):
-        print('create database experiment2 failed!')
+        logger.info('create database experiment2 failed!')
         return None
 
     cur.execute('use experiment2;')
-    print('found database experiment2!')
+    logger.info('found database experiment2!')
     cur.execute('show tables;')
     if 'USER_BEHAVIOR' not in (i[0] for i in cur._rows):
         cur.execute('''create table USER_BEHAVIOR(
@@ -46,10 +50,10 @@ def create_table():
         conn.commit()
     cur.execute('show tables;')
     if 'USER_BEHAVIOR' not in (i[0] for i in cur._rows):
-        print('create table USER_BEHAVIOR failed')
+        logger.info('create table USER_BEHAVIOR failed')
         return None
-    print('found table USER_BEHAVIOR!')
-    print('checking table finished!')
+    logger.info('found table USER_BEHAVIOR!')
+    logger.info('checking table finished!')
     return conn, cur
 
 def insert_record(balanced_consumer, conn, cur):
@@ -70,15 +74,15 @@ def insert_record(balanced_consumer, conn, cur):
         if mes is not None:
             record = mes.value.decode('utf-8').split('\t')
             if len(record) != 4:
-                print('[ERROR]', record, 'does not have enough elements!')
+                logger.error('%s does not have enough elements!'%(record))
                 continue
             try:
                 cur.execute('insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
                 conn.commit()
                 balanced_consumer.commit_offsets()
-                print('[INFO] insert record successful!', record)
+                logger.info('insert record successful! %s'%(record))
             except:
-                print('[ERROR] insert failed!', 'insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
+                logger.error('insert failed! insert into USER_BEHAVIOR values("%s", %s, "%s", "%s");'%tuple(record))
                 continue
 
 def parse_topic(topic_name, num_consumer = 1):
@@ -95,7 +99,7 @@ def parse_topic(topic_name, num_consumer = 1):
     client = KafkaClient(hosts="192.168.56.121:9092,192.168.56.122:9092,192.168.56.123:9092")
     topic = client.topics[topic_name.encode('utf-8')]
     with ThreadPoolExecutor(max_workers=num_consumer) as executor:
-        for x in range(num_consumer):
+        for _ in range(num_consumer):
             balanced_consumer = topic.get_balanced_consumer(
                 consumer_group = b'testgroup',
                 zookeeper_connect = "192.168.56.121:2181,192.168.56.122:2181,192.168.56.123:2181",

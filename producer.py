@@ -1,6 +1,10 @@
 # -*- coding:utf-8 -*-
 from pykafka import KafkaClient
 from split_file_by_time import output
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def send_records(topic_name, filename):
     '''send the records of the file to the specific topic
@@ -21,12 +25,12 @@ def send_records(topic_name, filename):
         for record in output(filename, 'second'):
             for t in record.strip().split('\n'):
                 producer.produce(t.encode('utf-8'))
-                print("send message:%s"%(t))
+                logger.info("send message:%s"%(t))
                 all_count += 1
             count += 1
-            if count > 15000:
-                break
-    print('send %d batchs, %d records'%(count, all_count))
+            # if count > 15000:
+            #     break
+    logger.info('send %d batchs, %d records'%(count, all_count))
 
 if __name__ == "__main__":
     send_records('userbehavior10', 'smallUserBehaviorSortedByTime_part1.txt')

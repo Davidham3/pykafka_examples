@@ -1,6 +1,10 @@
 # -*- coding:utf-8 -*-
 import os
 from datetime import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def readFile(filename):
     '''read files by line
@@ -36,7 +40,7 @@ def split_line(line):
     '''
     t = line.strip().split('\x01')
     if t[-1].endswith('.0'):
-        t[-1] = t[-1][:t[-1].find('.')]
+        t[-1] = t[-1][: t[-1].find('.')]
     t[-1] = datetime.strptime(t[-1], '%Y-%m-%d %H:%M:%S')
     return t
 
@@ -57,7 +61,7 @@ def generate_text(results):
         i[-1] = datetime.strftime(i[-1], '%Y-%m-%d %H:%M:%S')
     return '\n'.join('\t'.join(i) for i in results)
 
-def output(filename, freq):
+def output(filename, freq, continuous = False):
     '''
     Parameters
     ----------
@@ -65,34 +69,27 @@ def output(filename, freq):
     freq: str
         'second' means second, 'hour' means hour
     '''
+    freq_strformat = {'second': '%Y-%m-%d %H:%M:%S',
+                      'hour': '%Y-%m-%d %H'}
     last_time = None
     results = []
-    for index, line in enumerate(readFile(filename)):
+    for line in readFile(filename):
         data = split_line(line)
         if last_time is None:
-            if freq == 'second':
-                last_time = data[-1].strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                last_time = data[-1].strftime('%Y-%m-%d %H')
-            print('capture data in %s'%(last_time))
+            last_time = data[-1].strftime(freq_strformat[freq])
+            logger.info('capture data in %s'%(last_time))
             results.append(data)
         else:
-            if freq == 'second':
-                current_time = data[-1].strftime('%Y-%m-%d %H:%M:%S')
-            else:
-                current_time = data[-1].strftime('%Y-%m-%d %H')
+            current_time = data[-1].strftime(freq_strformat[freq])
             if current_time == last_time:
                 results.append(data)
             else:
                 yield generate_text(results)
                 results.clear()
-                if freq == 'second':
-                    last_time = data[-1].strftime('%Y-%m-%d %H:%M:%S')
-                else:
-                    last_time = data[-1].strftime('%Y-%m-%d %H')
-                print('capture data in %s'%(last_time))
+                last_time = data[-1].strftime(freq_strformat[freq])
+                logger.info('capture data in %s'%(last_time))
                 results.append(data)
 
 if __name__ == '__main__':
     for i in output('smallUserBehaviorSortedByTime_part1.txt', 'hour'):
-        data = i
+        print(i)
